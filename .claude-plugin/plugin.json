@@ -1,7 +1,11 @@
 {
   "name": "research-audio",
+  "displayName": "Research Audio",
   "version": "0.1.0",
   "description": "Turns a research session into a spoken summary (MP3) at a depth you choose once, and delivers it by email or as a file so you can listen on your phone.",
-  "author": { "name": "Ben Lang" },
-  "keywords": ["research", "audio", "tts", "summary", "email"]
+  "author": { "name": "Ben Lang", "url": "https://github.com/jebnlang" },
+  "homepage": "https://github.com/jebnlang/research-audio",
+  "repository": "https://github.com/jebnlang/research-audio",
+  "license": "MIT",
+  "keywords": ["research", "audio", "tts", "summary", "email", "podcast"]
 }

@@ -1,0 +1,12 @@
+{
+  "name": "research-audio",
+  "description": "Research Audio: turn a Claude Code research session into a spoken summary you can listen to on your phone.",
+  "owner": { "name": "Ben Lang", "url": "https://github.com/jebnlang" },
+  "plugins": [
+    {
+      "name": "research-audio",
+      "source": "./",
+      "description": "Spoken summary of a research session, emailed or saved as an MP3. Depth (concise, deep, deeper) is chosen once at setup."
+    }
+  ]
+}

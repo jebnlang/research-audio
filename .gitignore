@@ -1,3 +1,21 @@
+# dependencies and build output
 node_modules
-.DS_Store
+coverage
+
+# secrets and local config: never commit these
+.env
+.env.*
+*.env
+*.pem
+*.key
+.research-audio/
+research-audio-output/
+
+# generated audio and local scratch
 *.mp3
+.superpowers/
+
+# OS and editor
+.DS_Store
+.vscode/
+.idea/
