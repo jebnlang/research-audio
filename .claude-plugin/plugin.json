@@ -1,0 +1,7 @@
+{
+  "name": "research-audio",
+  "version": "0.1.0",
+  "description": "Turns a research session into a spoken summary (MP3) at a depth you choose once, and delivers it by email or as a file so you can listen on your phone.",
+  "author": { "name": "Ben Lang" },
+  "keywords": ["research", "audio", "tts", "summary", "email"]
+}
