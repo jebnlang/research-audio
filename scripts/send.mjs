@@ -29,6 +29,10 @@ export function makeRunDir(outputDir, topic, date = new Date()) {
   return dir;
 }
 
+export function topicFromRunDir(name) {
+  return name.replace(/^\d{4}-\d{2}-\d{2}-/, '').replace(/-/g, ' ').trim() || 'research';
+}
+
 const VALUE_FLAGS = { '--script': 'script', '--topic': 'topic', '--depth': 'depth', '--deliver': 'deliver' };
 const BOOL_FLAGS = { '--init': 'init', '--check': 'check', '--no-validate': 'noValidate' };
 
@@ -74,6 +78,7 @@ export async function runSend({ argv, env = process.env, fetchImpl = fetch, slee
     if (!args.script) return fail('usage', '--script <path> is required');
     const scriptPath = path.resolve(args.script);
     if (!fs.existsSync(scriptPath)) return fail('usage', `script not found: ${scriptPath}`);
+    if (!fs.statSync(scriptPath).isFile()) return fail('usage', `script is not a file: ${scriptPath}`);
     const scriptText = fs.readFileSync(scriptPath, 'utf8');
 
     if (args.check || !args.noValidate) {
@@ -89,7 +94,7 @@ export async function runSend({ argv, env = process.env, fetchImpl = fetch, slee
 
     const runDir = path.dirname(scriptPath);
     const audioPath = path.join(runDir, 'audio.mp3');
-    const topic = args.topic || path.basename(runDir);
+    const topic = args.topic || topicFromRunDir(path.basename(runDir));
 
     let audio;
     try {
@@ -107,10 +112,15 @@ export async function runSend({ argv, env = process.env, fetchImpl = fetch, slee
       };
     }
 
-    const delivery = await deliver({
-      mode: cfg.deliver, audioPath, scriptText, topic, depth: cfg.depth, seconds: audio.seconds,
-      config: cfg, secrets, fetchImpl, attachmentName: `${path.basename(runDir)}.mp3`,
-    });
+    let delivery;
+    try {
+      delivery = await deliver({
+        mode: cfg.deliver, audioPath, scriptText, topic, depth: cfg.depth, seconds: audio.seconds,
+        config: cfg, secrets, fetchImpl, attachmentName: `${path.basename(runDir)}.mp3`,
+      });
+    } catch (err) {
+      delivery = { requested: cfg.deliver, mode: 'file', fellBack: true, reason: `delivery failed: ${err.message}`, path: audioPath };
+    }
 
     return {
       exitCode: 0,
@@ -126,7 +136,7 @@ export async function runSend({ argv, env = process.env, fetchImpl = fetch, slee
     };
   } catch (err) {
     if (err instanceof ConfigError) return fail('config', err.message);
-    throw err;
+    return fail('internal', err.message);
   }
 }
 

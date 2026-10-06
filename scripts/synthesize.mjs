@@ -18,12 +18,13 @@ async function mapPool(items, limit, fn) {
   const results = new Array(items.length);
   let next = 0;
   let failed = false;
+  const shouldStop = () => failed;
   async function worker() {
     while (!failed) {
       const i = next++;
       if (i >= items.length) return;
       try {
-        results[i] = await fn(items[i], i);
+        results[i] = await fn(items[i], i, shouldStop);
       } catch (err) {
         failed = true;
         throw err;
@@ -47,8 +48,8 @@ export async function synthesize({
 }) {
   const chunks = chunkText(text, maxChars);
   if (!chunks.length) throw new Error('Nothing to synthesize: the script is empty.');
-  const buffers = await mapPool(chunks, concurrency, (chunk) =>
-    synthesizeChunk(chunk, { apiKey, voice, fetchImpl, sleep }),
+  const buffers = await mapPool(chunks, concurrency, (chunk, _i, shouldStop) =>
+    synthesizeChunk(chunk, { apiKey, voice, fetchImpl, sleep, shouldStop }),
   );
   const raw = Buffer.concat(buffers);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });

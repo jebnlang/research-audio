@@ -90,3 +90,24 @@ test('REVIEW FOCUS: the API key never appears in error text, even if the provide
     );
   }
 });
+
+test('FINAL FIX: a long key echoed past the 200-char cut is still fully redacted', async () => {
+  const key = 'sk-proj-' + 'A1b2C3d4E5'.repeat(15);
+  const body = 'x'.repeat(100) + key + ' tail';
+  const f = scriptedFetch(fakeResponse(400, body));
+  await assert.rejects(
+    synthesizeChunk('x', { apiKey: key, fetchImpl: f, sleep: async () => {} }),
+    (e) => !e.message.includes(key.slice(0, 20)) && !e.message.includes(key.slice(-20)),
+  );
+});
+
+test('FINAL FIX: a retry loop stops as soon as shouldStop says so', async () => {
+  const f = scriptedFetch(fakeResponse(503, 'down'));
+  let stop = false;
+  const sleep = async () => { stop = true; };
+  await assert.rejects(
+    synthesizeChunk('x', { apiKey: 'k', fetchImpl: f, sleep, shouldStop: () => stop }),
+    (e) => e instanceof SynthesisError && e.status === 503,
+  );
+  assert.equal(f.calls.length, 1);
+});

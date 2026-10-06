@@ -64,7 +64,7 @@ export async function deliver({
     return fallback(`could not reach Resend: ${redact(err.message)}`);
   }
   if (!res.ok) {
-    const detail = redact((await res.text()).slice(0, 200));
+    const detail = redact(await res.text()).slice(0, 200);
     return fallback(`Resend returned ${res.status}: ${detail}`);
   }
   let emailId;

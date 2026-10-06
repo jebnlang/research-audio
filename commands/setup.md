@@ -23,7 +23,7 @@ If the user chose `email`, ask in plain chat for the **recipient** address and t
 Run:
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/setup.mjs" --depth <depth> --deliver <email|file> [--recipient <addr> --from "<sender>"]`
 
-If it prints `"ok": false`, show the `problems` and ask again. Otherwise tell the user where the config (`configPath`) and the secrets file (`envPath`) are.
+If it prints `"ok": false`, show the `problems` (or the `error`, for a bad flag) and ask again. Otherwise tell the user where the config (`configPath`) and the secrets file (`envPath`) are.
 
 ## 3. Keys
 
@@ -39,4 +39,4 @@ Run `command -v ffmpeg`. If it is missing, tell the user to run `brew install ff
 
 ## 6. Test (opt-in)
 
-Offer a test with AskUserQuestion: a 5-second clip (costs under one cent), and in email mode also a test email to their own address. If they accept, rerun the setup command with `--test-clip` (and `--test-email`). Report `testClip.path` and any `error`. If the keys are still missing, say so and stop; they can rerun `/research-audio:setup` later and nothing already saved is lost.
+Offer a test with AskUserQuestion: a 5-second clip (costs under one cent), and in email mode also a test email to their own address. If they accept, rerun the setup command with `--test-clip` (and `--test-email`). Report `testClip.path` and any `testClip.error`. If `testEmail.fellBack` is true, say the test email was NOT sent and show `testEmail.reason` (this is how an unverified sender gets caught before the first real run); if `testEmail.error` is set, show that; if `testEmail.mode` is `email`, say it was sent to the recipient. If the keys are still missing, say so and stop; they can rerun `/research-audio:setup` later and nothing already saved is lost.

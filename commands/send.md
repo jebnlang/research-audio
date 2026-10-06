@@ -11,7 +11,7 @@ Pass any `--depth` / `--deliver` the user gave to every send.mjs call below, so 
 
 ## 1. Re-send an existing script (`--from-script <path>`)
 
-If the user gave `--from-script <path>`, skip to step 4 and add `--no-validate` to the send call.
+If the user gave `--from-script <path>`, skip to step 4 and add `--no-validate` to the send call. In that case the topic is the topic text in the arguments if there is one; otherwise omit `--topic` (the script derives a readable one from the run folder name).
 
 ## 2. Start the run
 
@@ -36,6 +36,6 @@ Run (Bash timeout 600000):
 ## 5. Report
 
 - `ok: false`, `stage: "voice"`: say the voice step failed with `error`, that the script was kept at `scriptPath`, and that `/research-audio:send --from-script "<scriptPath>"` retries without rewriting. Stop.
-- `ok: false`, any other stage: show `error` or `problems` and stop.
+- `ok: false`, any other stage (including `internal`): show `error` or `problems` and stop. If the run folder from step 2 contains an `audio.mp3`, tell the user where it is, because audio that was already generated is never deleted.
 - `ok: true`: report in two or three lines: mode delivered (email to the recipient, or file), length in `minutes`, `costUsd`, and `audioPath`. If `fellBack` is true, say the email was not sent and give `reason`. Show any `warnings`.
 - In file mode (including a fallback), hand the audio over in the session with SendUserFile (`files: [audioPath]`, `display: "attach"`, `status: "normal"`). If that tool is not available (plain terminal), just give the path.

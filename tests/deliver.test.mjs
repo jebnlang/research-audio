@@ -103,3 +103,11 @@ test('emailText lists topic, depth, length and the script', () => {
   assert.match(t, /20 min/);
   assert.match(t, /Body here\./);
 });
+
+test('FINAL FIX: a long Resend key echoed past the 200-char cut is still fully redacted', async () => {
+  const key = 're_' + 'Zz9Yy8Xx7W'.repeat(15);
+  const f = scriptedFetch(fakeResponse(401, 'y'.repeat(100) + key));
+  const r = await deliver(base({ fetchImpl: f, secrets: { RESEND_API_KEY: key } }));
+  assert.ok(!r.reason.includes(key.slice(0, 20)));
+  assert.ok(!r.reason.includes(key.slice(-20)));
+});

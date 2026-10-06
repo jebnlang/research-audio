@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { runSend, slugify, makeRunDir, parseArgs } from '../scripts/send.mjs';
+import { runSend, slugify, makeRunDir, parseArgs, topicFromRunDir } from '../scripts/send.mjs';
 import { setupHome, scriptedFetch, fakeResponse, sentences, tmpHome } from './helpers.mjs';
 
 const NO_FFMPEG = { has: () => false, encode: () => {} };
@@ -203,4 +203,53 @@ test('the CLI still prints its JSON when launched through a symlink (plugin cach
   assert.equal(out.ok, false);
   assert.equal(out.stage, 'config');
   assert.equal(r.status, 1);
+});
+
+test('FINAL FIX: --script pointing at a directory is a usage error, not a stack trace', async () => {
+  const { env, outputDir } = setupHome();
+  const dir = makeRunDir(outputDir, 'T');
+  const { exitCode, result } = await runSend({ argv: ['--script', dir], env });
+  assert.equal(exitCode, 1);
+  assert.equal(result.stage, 'usage');
+  assert.match(result.error, /not a file/);
+});
+
+test('FINAL FIX: an unexpected error becomes one JSON failure with stage "internal"', async () => {
+  const { env, home } = setupHome();
+  const blocker = path.join(home, 'blocker');
+  fs.writeFileSync(blocker, 'a file, not a folder');
+  fs.writeFileSync(path.join(home, 'config.json'), JSON.stringify({ depth: 'deep', deliver: 'file', voice: 'marin', outputDir: path.join(blocker, 'sub') }));
+  const { exitCode, result } = await runSend({ argv: ['--init', '--topic', 'T'], env });
+  assert.equal(exitCode, 1);
+  assert.equal(result.ok, false);
+  assert.equal(result.stage, 'internal');
+});
+
+test('FINAL FIX: if delivery itself throws after synthesis, the audio is reported, not lost', async () => {
+  const { env, outputDir } = setupHome({ depth: 'concise', deliver: 'email' });
+  const broken = { ...fakeResponse(403, 'nope'), text: async () => { throw new Error('socket hang up'); } };
+  const f = scriptedFetch((url) => (url.includes('openai') ? fakeResponse(200, 'AUDIO') : broken));
+  const p = writeScript(makeRunDir(outputDir, 'T'), sentences(400));
+  const { exitCode, result } = await runSend({ argv: ['--script', p], env, fetchImpl: f, ffmpeg: NO_FFMPEG });
+  assert.equal(exitCode, 0);
+  assert.equal(result.ok, true);
+  assert.equal(result.mode, 'file');
+  assert.equal(result.fellBack, true);
+  assert.match(result.reason, /socket hang up/);
+  assert.ok(fs.existsSync(result.audioPath));
+});
+
+test('FINAL FIX: topicFromRunDir turns a run folder name back into a readable topic', () => {
+  assert.equal(topicFromRunDir('2026-10-06-voice-engines'), 'voice engines');
+  assert.equal(topicFromRunDir('2026-10-06-research'), 'research');
+  assert.equal(topicFromRunDir('weird'), 'weird');
+});
+
+test('FINAL FIX: on a --from-script retry without --topic the email subject is readable, not the folder name', async () => {
+  const { env, outputDir } = setupHome({ depth: 'concise', deliver: 'email' });
+  const f = router();
+  const p = writeScript(makeRunDir(outputDir, 'Voice engines', new Date(2026, 9, 6)), sentences(400));
+  await runSend({ argv: ['--script', p, '--no-validate'], env, fetchImpl: f, ffmpeg: NO_FFMPEG });
+  const body = JSON.parse(resendCalls(f)[0].init.body);
+  assert.match(body.subject, /: voice engines$/);
 });

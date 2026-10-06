@@ -88,3 +88,14 @@ test('with real ffmpeg the output is re-encoded to 64 kbps mono', { skip: !hasFf
   assert.ok(r.seconds >= 1 && r.seconds <= 2, `seconds=${r.seconds}`);
   assert.equal(fs.existsSync(`${outPath}.raw.mp3`), false);
 });
+
+test('FINAL FIX: after one chunk fails for good, sibling workers stop retrying', async () => {
+  const f = scriptedFetch(fakeResponse(400, 'bad input'), fakeResponse(503, 'down'));
+  const sleep = () => new Promise((r) => setTimeout(r, 5));
+  await assert.rejects(
+    synthesize({ text: paragraphs(4), outPath: path.join(tmpHome(), 'a.mp3'), apiKey: 'k', fetchImpl: f, sleep, concurrency: 2, ffmpeg: NO_FFMPEG }),
+    (e) => e instanceof SynthesisError && e.status === 400,
+  );
+  await new Promise((r) => setTimeout(r, 60));
+  assert.equal(f.calls.length, 2);
+});

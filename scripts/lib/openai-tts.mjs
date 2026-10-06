@@ -21,12 +21,16 @@ export async function synthesizeChunk(text, {
   fetchImpl = fetch,
   sleep = defaultSleep,
   maxRetries = 3,
+  shouldStop,
 }) {
   const body = JSON.stringify({ model, voice, input: text, instructions, response_format: 'mp3' });
   const redact = (s) => (apiKey ? s.split(apiKey).join('[key]') : s);
   let lastError;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    if (attempt > 0) await sleep(1000 * 2 ** (attempt - 1));
+    if (attempt > 0) {
+      await sleep(1000 * 2 ** (attempt - 1));
+      if (shouldStop && shouldStop()) throw lastError;
+    }
     let res;
     try {
       res = await fetchImpl(TTS_URL, {
@@ -42,7 +46,7 @@ export async function synthesizeChunk(text, {
     if (res.status === 401 || res.status === 403) {
       throw new SynthesisError(`OpenAI rejected the API key (${res.status}). Check OPENAI_API_KEY.`, { status: res.status });
     }
-    const detail = redact((await res.text()).slice(0, 200));
+    const detail = redact(await res.text()).slice(0, 200);
     const retryable = res.status === 429 || res.status >= 500;
     lastError = new SynthesisError(`OpenAI returned ${res.status}: ${detail}`, { status: res.status, retryable });
     if (!retryable) throw lastError;
